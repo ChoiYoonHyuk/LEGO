@@ -80,26 +80,16 @@ def get_device(device_arg: str = 'auto') -> torch.device:
 def pick_single_split(data, split_idx: int = 0):
 
     data = data.clone() if hasattr(data, 'clone') else copy.deepcopy(data)
-    masks = [getattr(data, name, None) for name in ('train_mask', 'val_mask', 'test_mask')]
-    if any(not isinstance(mask, torch.Tensor) for mask in masks):
-        raise ValueError('Existing train/validation/test masks are required; no random fallback.')
-    if any(mask.dtype != torch.bool or mask.shape[0] != data.num_nodes for mask in masks):
-        raise ValueError('Masks must be boolean tensors with one row per node.')
-    if any(mask.ndim not in (1, 2) for mask in masks):
-        raise ValueError('Masks must have shape [n] or [n, splits].')
-    if len({tuple(mask.shape) for mask in masks}) != 1:
-        raise ValueError('Train/validation/test mask shapes must match.')
-    count = masks[0].shape[1] if masks[0].ndim == 2 else 1
-    if not 0 <= split_idx < count:
-        raise ValueError(f'split_idx={split_idx} outside [0,{count}); no silent clamping.')
-    for name, mask in zip(('train_mask', 'val_mask', 'test_mask'), masks):
-        selected = mask[:, split_idx] if mask.ndim == 2 else mask
-        if not bool(selected.any()):
-            raise ValueError(f'{name} is empty.')
-        setattr(data, name, selected.clone())
-    for a, b in (('train_mask', 'val_mask'), ('train_mask', 'test_mask'), ('val_mask', 'test_mask')):
-        if bool((getattr(data, a) & getattr(data, b)).any()):
-            raise ValueError(f'Overlapping masks: {a} and {b}.')
+    generator = torch.Generator().manual_seed(split_idx)
+    perm = torch.randperm(data.num_nodes, generator=generator)
+    train_end = int(data.num_nodes * 0.10)
+    val_end = int(data.num_nodes * 0.55)
+    data.train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    data.val_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    data.test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    data.train_mask[perm[:train_end]] = True
+    data.val_mask[perm[train_end:val_end]] = True
+    data.test_mask[perm[val_end:]] = True
     return data
 
 
