@@ -3,7 +3,7 @@
 
 <img width="1045" height="501" alt="Image" src="https://github.com/user-attachments/assets/bd7fd4d0-dcbe-40ce-b061-8a88becbf72e" />
 
-This repository provides a PyTorch Geometric implementation of a "Shifted Graph-Coupled Activation with Learned Edge Targets for GNNs."
+This repository provides a PyTorch Geometric implementation of a "Learned Edge Targets for Graph-Coupled Neural Layers."
 
 
 ## Datasets
